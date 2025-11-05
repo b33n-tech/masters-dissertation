@@ -2,170 +2,138 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Workspace Mémoire</title>
+<title>Workspace Mémoire Pro</title>
 <style>
-    body { font-family: Arial, sans-serif; margin: 20px; max-width: 1200px; }
-    h1 { color: #333; }
-    .section, .subsection, .note { border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; border-radius: 5px; background: #f9f9f9; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background: #f4f6f8; color: #333; }
+    h1 { color: #1f3c88; }
+    .section, .subsection, .note { border-radius: 8px; padding: 10px; margin-bottom: 10px; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
     .subsection { margin-left: 20px; }
-    .note { margin-left: 40px; font-size: 0.9em; background: #fff7e6; }
-    textarea { width: 100%; }
-    button { margin-top: 5px; margin-right: 5px; }
-    .flex { display: flex; gap: 5px; margin-bottom: 5px; }
+    .note { margin-left: 40px; background: #fff7e6; font-size: 0.9em; padding: 5px 10px; }
+    textarea, input { width: 100%; padding: 5px; margin-top: 5px; border-radius: 5px; border: 1px solid #ccc; }
+    button { margin: 5px 3px 5px 0; padding: 5px 10px; border-radius: 5px; border:none; cursor:pointer; background:#1f3c88; color:white; }
+    button:hover { background:#1452a0; }
+    .flex { display:flex; gap:5px; align-items:center; margin-bottom:5px; }
+    #workspace { max-width: 1000px; margin-top: 20px; }
+    input[type=file] { padding: 3px; }
 </style>
 </head>
 <body>
 
-<h1>Workspace d'enrichissement de mémoire</h1>
+<h1>Workspace Mémoire Pro</h1>
+
+<div>
+    <button onclick="addSection()">➕ Ajouter une section</button>
+    <button onclick="exportJSON()">💾 Export JSON</button>
+    <button onclick="exportMarkdown()">📄 Export Markdown</button>
+    <input type="file" id="jsonFile" accept=".json" onchange="importJSON(event)">
+</div>
 
 <div id="workspace"></div>
 
-<button onclick="addSection()">➕ Ajouter une section</button>
-<button onclick="exportJSON()">💾 Export JSON</button>
-<button onclick="exportMarkdown()">📄 Export Markdown</button>
-
 <script>
 let plan = [
-    {titre: "Abstract", contenu: "", sous: []},
-    {titre: "Introduction", contenu: "", sous: []},
-    {titre: "Literature Review", contenu: "", sous: []},
-    {titre: "Methodology", contenu: "", sous: []},
-    {titre: "Results", contenu: "", sous: []},
-    {titre: "Discussion", contenu: "", sous: []},
-    {titre: "Conclusion", contenu: "", sous: []},
-    {titre: "Annexes", contenu: "", sous: []}
+    {titre:"Abstract", contenu:"", sous:[]},
+    {titre:"Introduction", contenu:"", sous:[]},
+    {titre:"Literature Review", contenu:"", sous:[]},
+    {titre:"Methodology", contenu:"", sous:[]},
+    {titre:"Results", contenu:"", sous:[]},
+    {titre:"Discussion", contenu:"", sous:[]},
+    {titre:"Conclusion", contenu:"", sous:[]},
+    {titre:"Annexes", contenu:"", sous:[]}
 ];
 
-function render() {
+function render(){
     const ws = document.getElementById("workspace");
-    ws.innerHTML = "";
-    plan.forEach((sec, i) => {
+    ws.innerHTML="";
+    plan.forEach((sec,i)=>{
         const secDiv = document.createElement("div");
-        secDiv.className = "section";
-        
-        const headerDiv = document.createElement("div");
-        headerDiv.className = "flex";
-        const h = document.createElement("input");
-        h.type = "text";
-        h.value = sec.titre;
-        h.oninput = (e)=> sec.titre = e.target.value;
-        h.style.flex="1";
-        headerDiv.appendChild(h);
+        secDiv.className="section";
 
-        const up = document.createElement("button");
-        up.textContent = "↑";
-        up.onclick = ()=> moveSection(i, -1);
-        const down = document.createElement("button");
-        down.textContent = "↓";
-        down.onclick = ()=> moveSection(i, 1);
-        const del = document.createElement("button");
-        del.textContent = "❌";
-        del.onclick = ()=> { plan.splice(i,1); render(); };
-        headerDiv.append(up, down, del);
-        secDiv.appendChild(headerDiv);
+        const header = document.createElement("div");
+        header.className="flex";
+        const hInput = document.createElement("input");
+        hInput.type="text"; hInput.value=sec.titre; hInput.oninput=(e)=> sec.titre=e.target.value; hInput.style.flex="1";
+        header.appendChild(hInput);
 
-        const ta = document.createElement("textarea");
-        ta.rows = 4;
-        ta.value = sec.contenu;
-        ta.oninput = (e)=> sec.contenu = e.target.value;
+        const up = document.createElement("button"); up.textContent="↑"; up.onclick=()=> moveSection(i,-1);
+        const down = document.createElement("button"); down.textContent="↓"; down.onclick=()=> moveSection(i,1);
+        const del = document.createElement("button"); del.textContent="❌"; del.onclick=()=>{ plan.splice(i,1); render(); };
+        header.append(up,down,del);
+        secDiv.appendChild(header);
+
+        const ta = document.createElement("textarea"); ta.rows=4; ta.value=sec.contenu; ta.oninput=(e)=> sec.contenu=e.target.value;
         secDiv.appendChild(ta);
 
-        const subContainer = document.createElement("div");
-        sec.sous.forEach((sub, j)=>{
-            const subDiv = document.createElement("div");
-            subDiv.className="subsection";
-
-            const subHeader = document.createElement("div");
-            subHeader.className="flex";
-            const subInput = document.createElement("input");
-            subInput.type="text";
-            subInput.value=sub.titre;
-            subInput.oninput = (e)=> sub.titre = e.target.value;
-            subInput.style.flex="1";
+        // Sous-parties
+        sec.sous.forEach((sub,j)=>{
+            const subDiv = document.createElement("div"); subDiv.className="subsection";
+            const subHeader = document.createElement("div"); subHeader.className="flex";
+            const subInput = document.createElement("input"); subInput.type="text"; subInput.value=sub.titre;
+            subInput.oninput=(e)=> sub.titre=e.target.value; subInput.style.flex="1";
             subHeader.appendChild(subInput);
 
-            const upS = document.createElement("button"); upS.textContent="↑"; upS.onclick=()=> moveSub(i,j,-1);
-            const downS = document.createElement("button"); downS.textContent="↓"; downS.onclick=()=> moveSub(i,j,1);
-            const delS = document.createElement("button"); delS.textContent="❌"; delS.onclick=()=> { plan[i].sous.splice(j,1); render(); };
-            subHeader.append(upS, downS, delS);
+            const upS=document.createElement("button"); upS.textContent="↑"; upS.onclick=()=> moveSub(i,j,-1);
+            const downS=document.createElement("button"); downS.textContent="↓"; downS.onclick=()=> moveSub(i,j,1);
+            const delS=document.createElement("button"); delS.textContent="❌"; delS.onclick=()=>{ plan[i].sous.splice(j,1); render(); };
+            subHeader.append(upS,downS,delS);
             subDiv.appendChild(subHeader);
 
-            const subTa = document.createElement("textarea");
-            subTa.rows=3;
-            subTa.value=sub.contenu;
-            subTa.oninput=(e)=> sub.contenu = e.target.value;
+            const subTa = document.createElement("textarea"); subTa.rows=3; subTa.value=sub.contenu; subTa.oninput=(e)=> sub.contenu=e.target.value;
             subDiv.appendChild(subTa);
 
-            const noteContainer = document.createElement("div");
-            sub.notes.forEach((note,k)=>{
-                const noteDiv = document.createElement("div");
-                noteDiv.className="note";
-                noteDiv.textContent = `[${note.tag}] ${note.texte}`;
-                const delN = document.createElement("button");
-                delN.textContent="❌"; delN.onclick=()=> { sub.notes.splice(k,1); render(); };
-                noteDiv.appendChild(delN);
-                noteContainer.appendChild(noteDiv);
+            // Notes
+            sub.notes.forEach((n,k)=>{
+                const nDiv=document.createElement("div"); nDiv.className="note"; nDiv.textContent=`[${n.tag}] ${n.texte}`;
+                const delN=document.createElement("button"); delN.textContent="❌"; delN.onclick=()=>{ sub.notes.splice(k,1); render(); };
+                nDiv.appendChild(delN);
+                subDiv.appendChild(nDiv);
             });
 
-            // Ajouter note
-            const noteInput = document.createElement("input");
-            noteInput.placeholder="Nouvelle note";
-            const tagInput = document.createElement("input");
-            tagInput.placeholder="Tag";
-            const addNoteBtn = document.createElement("button");
-            addNoteBtn.textContent="Ajouter note";
-            addNoteBtn.onclick = ()=> {
-                if(noteInput.value.trim()!=="") {
-                    sub.notes.push({texte: noteInput.value.trim(), tag: tagInput.value.trim()});
-                    render();
-                }
-            }
-            noteContainer.append(noteInput, tagInput, addNoteBtn);
-            subDiv.appendChild(noteContainer);
+            const noteInput=document.createElement("input"); noteInput.placeholder="Nouvelle note";
+            const tagInput=document.createElement("input"); tagInput.placeholder="Tag";
+            const addNoteBtn=document.createElement("button"); addNoteBtn.textContent="Ajouter note";
+            addNoteBtn.onclick=()=>{ if(noteInput.value.trim()!==""){ sub.notes.push({texte:noteInput.value.trim(),tag:tagInput.value.trim()}); render(); } };
+            subDiv.append(noteInput,tagInput,addNoteBtn);
 
-            subContainer.appendChild(subDiv);
+            secDiv.appendChild(subDiv);
         });
-        secDiv.appendChild(subContainer);
 
-        const addSubBtn = document.createElement("button");
-        addSubBtn.textContent="➕ Ajouter sous-partie";
-        addSubBtn.onclick = ()=>{
-            sec.sous.push({titre:"Nouvelle sous-partie", contenu:"", notes:[]});
-            render();
-        }
+        const addSubBtn=document.createElement("button"); addSubBtn.textContent="➕ Ajouter sous-partie";
+        addSubBtn.onclick=()=>{ sec.sous.push({titre:"Nouvelle sous-partie",contenu:"",notes:[]}); render(); };
         secDiv.appendChild(addSubBtn);
 
         ws.appendChild(secDiv);
     });
 }
 
-function addSection() { plan.push({titre:"Nouvelle section", contenu:"", sous:[]}); render(); }
-function moveSection(i,d){ const j=i+d; if(j<0||j>=plan.length) return; [plan[i],plan[j]]=[plan[j],plan[i]]; render(); }
-function moveSub(i,j,d){ const k=j+d; if(k<0||k>=plan[i].sous.length) return; [plan[i].sous[j],plan[i].sous[k]]=[plan[i].sous[k],plan[i].sous[j]]; render(); }
+function addSection(){ plan.push({titre:"Nouvelle section",contenu:"",sous:[]}); render(); }
+function moveSection(i,d){ const j=i+d; if(j<0||j>=plan.length)return; [plan[i],plan[j]]=[plan[j],plan[i]]; render(); }
+function moveSub(i,j,d){ const k=j+d; if(k<0||k>=plan[i].sous.length)return; [plan[i].sous[j],plan[i].sous[k]]=[plan[i].sous[k],plan[i].sous[j]]; render(); }
 
-function exportJSON() {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(plan,null,2));
-    const dlAnchor = document.createElement("a");
-    dlAnchor.setAttribute("href", dataStr);
-    dlAnchor.setAttribute("download","plan_memoire.json");
-    dlAnchor.click();
-}
+function exportJSON(){ const dataStr="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(plan,null,2)); const dl=document.createElement("a"); dl.setAttribute("href",dataStr); dl.setAttribute("download","plan_memoire.json"); dl.click(); }
 
-function exportMarkdown() {
-    let md = "";
+function exportMarkdown(){
+    let md="";
     plan.forEach(p=>{
         md+="# "+p.titre+"\n\n"+p.contenu+"\n\n";
         p.sous.forEach(sp=>{
             md+="## "+sp.titre+"\n\n"+sp.contenu+"\n\n";
-            if(sp.notes.length>0){ md+="### Notes\n"; sp.notes.forEach(n=> md+=`- [${n.tag}] ${n.texte}\n`); md+="\n"; }
+            if(sp.notes.length>0){ md+="### Notes\n"; sp.notes.forEach(n=>md+=`- [${n.tag}] ${n.texte}\n`); md+="\n"; }
         });
         md+="---\n\n";
     });
-    const dataStr = "data:text/markdown;charset=utf-8," + encodeURIComponent(md);
-    const dlAnchor = document.createElement("a");
-    dlAnchor.setAttribute("href", dataStr);
-    dlAnchor.setAttribute("download","plan_memoire.md");
-    dlAnchor.click();
+    const dataStr="data:text/markdown;charset=utf-8,"+encodeURIComponent(md);
+    const dl=document.createElement("a"); dl.setAttribute("href",dataStr); dl.setAttribute("download","plan_memoire.md"); dl.click();
+}
+
+function importJSON(event){
+    const file=event.target.files[0];
+    if(!file) return;
+    const reader=new FileReader();
+    reader.onload=function(e){
+        try{ plan=JSON.parse(e.target.result); render(); }catch(err){ alert("JSON invalide"); }
+    }
+    reader.readAsText(file);
 }
 
 render();
