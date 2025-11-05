@@ -1,14 +1,21 @@
 import streamlit as st
 import pandas as pd
 
-# Titre de l'application
 st.title("Plan détaillé de mémoire")
 
-# Initialisation du stockage si pas déjà fait
+# Initialisation
 if 'plan' not in st.session_state:
     st.session_state.plan = []
 
-# Formulaire pour ajouter une nouvelle partie
+# Fonction pour déplacer une partie
+def move_part(index, direction):
+    plan = st.session_state.plan
+    if direction == "up" and index > 0:
+        plan[index], plan[index-1] = plan[index-1], plan[index]
+    elif direction == "down" and index < len(plan)-1:
+        plan[index], plan[index+1] = plan[index+1], plan[index]
+
+# Formulaire pour ajouter une partie
 with st.form("ajouter_partie"):
     st.subheader("Ajouter une nouvelle partie")
     titre = st.text_input("Titre de la partie")
@@ -21,24 +28,45 @@ with st.form("ajouter_partie"):
         st.session_state.plan.append({
             "Titre": titre,
             "Nb_pages": nb_pages,
-            "Sous_parties": [s.strip() for s in sous_parties.split(",") if s.strip() != ""],
+            "Sous_parties": [s.strip() for s in sous_parties.split(",") if s.strip()],
             "Commentaires": commentaires
         })
         st.success(f"Partie '{titre}' ajoutée !")
 
 # Affichage du plan actuel
 st.subheader("Plan actuel")
-if st.session_state.plan:
-    for idx, partie in enumerate(st.session_state.plan):
-        st.markdown(f"### Partie {idx+1}: {partie['Titre']} ({partie['Nb_pages']} pages)")
+total_pages = 0
+for idx, partie in enumerate(st.session_state.plan):
+    st.markdown(f"### Partie {idx+1}: {partie['Titre']} ({partie['Nb_pages']} pages)")
+    total_pages += partie['Nb_pages']
+    
+    col1, col2, col3, col4 = st.columns([1,1,1,6])
+    with col1:
+        if st.button("↑", key=f"up_{idx}"):
+            move_part(idx, "up")
+    with col2:
+        if st.button("↓", key=f"down_{idx}"):
+            move_part(idx, "down")
+    with col3:
+        if st.button("❌", key=f"del_{idx}"):
+            st.session_state.plan.pop(idx)
+            st.experimental_rerun()
+    
+    with col4:
         if partie['Sous_parties']:
             st.write("**Sous-parties:**")
-            for sp in partie['Sous_parties']:
-                st.write(f"- {sp}")
+            for sp_idx, sp in enumerate(partie['Sous_parties']):
+                col_a, col_b = st.columns([8,1])
+                with col_a:
+                    st.write(f"- {sp}")
+                with col_b:
+                    if st.button("❌", key=f"del_sp_{idx}_{sp_idx}"):
+                        partie['Sous_parties'].pop(sp_idx)
+                        st.experimental_rerun()
         if partie['Commentaires']:
             st.write(f"**Commentaires:** {partie['Commentaires']}")
-else:
-    st.info("Aucune partie ajoutée pour l'instant.")
+
+st.markdown(f"**Nombre total de pages prévu : {total_pages}**")
 
 # Option pour télécharger le plan en CSV
 if st.session_state.plan:
