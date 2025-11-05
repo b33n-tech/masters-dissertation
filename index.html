@@ -2,28 +2,38 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Workspace Mémoire Pro - Trame par paragraphe</title>
+<title>Workspace Mémoire Pro</title>
 <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background: #f4f6f8; color: #333; }
-    h1 { color: #1f3c88; }
-    .section, .subsection, .note, .paragraph { border-radius: 8px; padding: 10px; margin-bottom: 10px; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-    .subsection { margin-left: 20px; }
-    .note { margin-left: 40px; background: #fff7e6; font-size: 0.9em; padding: 5px 10px; }
-    .paragraph { margin-left: 20px; background: #f0f0f5; }
-    textarea, input { width: 100%; padding: 5px; margin-top: 5px; border-radius: 5px; border: 1px solid #ccc; }
-    button { margin: 5px 3px 5px 0; padding: 5px 10px; border-radius: 5px; border:none; cursor:pointer; background:#1f3c88; color:white; }
-    button:hover { background:#1452a0; }
-    .flex { display:flex; gap:5px; align-items:center; margin-bottom:5px; }
-    #workspace { max-width: 1000px; margin-top: 20px; }
-    input[type=file] { padding: 3px; }
-    .word-count { font-size:0.85em; color:#555; margin-top:5px; }
-    .fold-btn { background:#777; }
-    .fold-btn:hover { background:#555; }
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 20px; background: #f4f6f8; color: #333;
+}
+h1 { color: #1f3c88; }
+.section, .subsection, .paragraph {
+    border-radius: 8px; padding: 12px; margin-bottom: 12px;
+    background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.section:hover, .subsection:hover, .paragraph:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+.subsection { margin-left: 20px; }
+.paragraph { margin-left: 20px; background: #f0f0f5; }
+textarea, input { width: 100%; padding: 6px; margin-top: 5px; border-radius: 5px; border: 1px solid #ccc; transition: border 0.2s; }
+textarea:focus, input:focus { border-color: #1f3c88; outline:none; }
+button { margin: 5px 3px 5px 0; padding: 6px 12px; border-radius: 5px; border:none; cursor:pointer; background:#1f3c88; color:white; transition: background 0.2s; }
+button:hover { background:#1452a0; }
+.flex { display:flex; gap:5px; align-items:center; margin-bottom:5px; }
+#workspace { max-width: 1000px; margin-top: 20px; }
+.word-count { font-size:0.85em; color:#555; margin-top:5px; }
+.fold-btn { background:#777; }
+.fold-btn:hover { background:#555; }
 </style>
 </head>
 <body>
 
-<h1>Workspace Mémoire Pro - Trame par paragraphe</h1>
+<h1>Workspace Mémoire Pro</h1>
 
 <div>
     <button onclick="addSection()">➕ Ajouter une section</button>
@@ -35,16 +45,7 @@
 <div id="workspace"></div>
 
 <script>
-let plan = [
-    {titre:"Abstract", paragraphs:[], sous:[], targetWords:0, folded:false},
-    {titre:"Introduction", paragraphs:[], sous:[], targetWords:0, folded:false},
-    {titre:"Literature Review", paragraphs:[], sous:[], targetWords:0, folded:false},
-    {titre:"Methodology", paragraphs:[], sous:[], targetWords:0, folded:false},
-    {titre:"Results", paragraphs:[], sous:[], targetWords:0, folded:false},
-    {titre:"Discussion", paragraphs:[], sous:[], targetWords:0, folded:false},
-    {titre:"Conclusion", paragraphs:[], sous:[], targetWords:0, folded:false},
-    {titre:"Annexes", paragraphs:[], sous:[], targetWords:0, folded:false}
-];
+let plan = [];
 
 function countWords(str){ return str.trim() ? str.trim().split(/\s+/).length : 0; }
 
@@ -79,6 +80,12 @@ function render(){
             targetDiv.append(targetLabel,targetInput);
             secDiv.appendChild(targetDiv);
 
+            // Contenu général
+            const contLabel=document.createElement("div"); contLabel.textContent="Contenu général :";
+            const contTA=document.createElement("textarea"); contTA.rows=3; contTA.value=sec.contenu;
+            contTA.oninput=(e)=> sec.contenu=e.target.value;
+            secDiv.append(contLabel,contTA);
+
             // Paragraphs
             sec.paragraphs.forEach((p,j)=>{
                 const pDiv=document.createElement("div"); pDiv.className="paragraph";
@@ -89,17 +96,15 @@ function render(){
                 pHeader.appendChild(delP);
                 pDiv.appendChild(pHeader);
 
-                const ta=document.createElement("textarea"); ta.rows=3; ta.value=p; ta.oninput=(e)=> sec.paragraphs[j]=e.target.value;
+                const ta=document.createElement("textarea"); ta.rows=2; ta.value=p; ta.oninput=(e)=> sec.paragraphs[j]=e.target.value;
                 pDiv.appendChild(ta);
-
                 secDiv.appendChild(pDiv);
             });
-            const addP=document.createElement("button"); addP.textContent="➕ Ajouter paragraphe";
-            addP.onclick=()=>{ sec.paragraphs.push(""); render(); };
+            const addP=document.createElement("button"); addP.textContent="➕ Ajouter paragraphe"; addP.onclick=()=>{ sec.paragraphs.push(""); render(); };
             secDiv.appendChild(addP);
 
             // Word count
-            const secWords=sec.paragraphs.reduce((a,b)=>a+countWords(b),0)+sec.sous.reduce((a,b)=>a+countWords(b.paragraphs.reduce((aa,bb)=>aa+countWords(bb),0)),0);
+            const secWords= countWords(sec.contenu) + sec.paragraphs.reduce((a,b)=>a+countWords(b),0);
             const percent = sec.targetWords>0 ? Math.min(100, Math.round(secWords/sec.targetWords*100)) : 0;
             const wc=document.createElement("div"); wc.className="word-count"; wc.textContent=`Mots comptés: ${secWords} | Couverture: ${percent}%`;
             secDiv.appendChild(wc);
@@ -107,23 +112,34 @@ function render(){
             // Sous-parties
             sec.sous.forEach((sub,j)=>{
                 const subDiv=document.createElement("div"); subDiv.className="subsection";
+                // Header sous-section
+                const subHeader=document.createElement("div"); subHeader.className="flex";
+                const subFoldBtn=document.createElement("button"); subFoldBtn.textContent=sub.folded?"▶":"▼"; subFoldBtn.className="fold-btn";
+                subFoldBtn.onclick=()=>{ sub.folded=!sub.folded; render(); };
+                subHeader.appendChild(subFoldBtn);
+                const subInput=document.createElement("input"); subInput.type="text"; subInput.value=sub.titre; subInput.style.flex="1";
+                subInput.oninput=(e)=> sub.titre=e.target.value;
+                subHeader.appendChild(subInput);
+                const delS=document.createElement("button"); delS.textContent="❌"; delS.onclick=()=>{ sec.sous.splice(j,1); render(); };
+                subHeader.appendChild(delS);
+                subDiv.appendChild(subHeader);
+
                 if(!sub.folded){
-                    const subHeader=document.createElement("div"); subHeader.className="flex";
-                    const subFoldBtn=document.createElement("button"); subFoldBtn.textContent=sub.folded?"▶":"▼"; subFoldBtn.className="fold-btn";
-                    subFoldBtn.onclick=()=>{ sub.folded=!sub.folded; render(); };
-                    subHeader.appendChild(subFoldBtn);
+                    // Target words sous
+                    const targetSub=document.createElement("div"); targetSub.className="flex";
+                    const targetLabelSub=document.createElement("span"); targetLabelSub.textContent="Objectif mots :";
+                    const targetInputSub=document.createElement("input"); targetInputSub.type="number"; targetInputSub.value=sub.targetWords;
+                    targetInputSub.oninput=(e)=> sub.targetWords=parseInt(e.target.value)||0;
+                    targetSub.append(targetLabelSub,targetInputSub);
+                    subDiv.appendChild(targetSub);
 
-                    const subInput=document.createElement("input"); subInput.type="text"; subInput.value=sub.titre; subInput.style.flex="1";
-                    subInput.oninput=(e)=> sub.titre=e.target.value;
-                    subHeader.appendChild(subInput);
+                    // Contenu général sous
+                    const contLabelSub=document.createElement("div"); contLabelSub.textContent="Contenu général :";
+                    const contTASub=document.createElement("textarea"); contTASub.rows=3; contTASub.value=sub.contenu;
+                    contTASub.oninput=(e)=> sub.contenu=e.target.value;
+                    subDiv.append(contLabelSub,contTASub);
 
-                    const upS=document.createElement("button"); upS.textContent="↑"; upS.onclick=()=> moveSub(i,j,-1);
-                    const downS=document.createElement("button"); downS.textContent="↓"; downS.onclick=()=> moveSub(i,j,1);
-                    const delS=document.createElement("button"); delS.textContent="❌"; delS.onclick=()=>{ sec.sous.splice(j,1); render(); };
-                    subHeader.append(upS,downS,delS);
-                    subDiv.appendChild(subHeader);
-
-                    // Paragraphs sous-section
+                    // Paragraphes sous
                     sub.paragraphs.forEach((p2,k)=>{
                         const pDiv2=document.createElement("div"); pDiv2.className="paragraph";
                         const pLabel=document.createElement("span"); pLabel.textContent=`Paragraphe ${k+1}`;
@@ -135,20 +151,16 @@ function render(){
                     });
                     const addP2=document.createElement("button"); addP2.textContent="➕ Ajouter paragraphe"; addP2.onclick=()=>{ sub.paragraphs.push(""); render(); };
                     subDiv.appendChild(addP2);
-                } else {
-                    const titleFolded=document.createElement("div"); titleFolded.textContent=sub.titre+" ..."; titleFolded.style.fontStyle="italic"; subDiv.appendChild(titleFolded);
-                }
 
-                // Word count sous-section
-                const subWords=sub.paragraphs.reduce((a,b)=>a+countWords(b),0);
-                const subWC=document.createElement("div"); subWC.className="word-count"; subWC.textContent=`Mots: ${subWords}`;
-                subDiv.appendChild(subWC);
+                    // Word count sous
+                    const subWords= countWords(sub.contenu) + sub.paragraphs.reduce((a,b)=>a+countWords(b),0);
+                    const subWC=document.createElement("div"); subWC.className="word-count"; subWC.textContent=`Mots comptés: ${subWords} | Couverture: ${sub.targetWords?Math.min(100,Math.round(subWords/sub.targetWords*100)):0}%`;
+                    subDiv.appendChild(subWC);
+                }
 
                 secDiv.appendChild(subDiv);
             });
-
-            const addSubBtn=document.createElement("button"); addSubBtn.textContent="➕ Ajouter sous-partie";
-            addSubBtn.onclick=()=>{ sec.sous.push({titre:"Nouvelle sous-partie",paragraphs:[],notes:[],folded:false}); render(); };
+            const addSubBtn=document.createElement("button"); addSubBtn.textContent="➕ Ajouter sous-section"; addSubBtn.onclick=()=>{ sec.sous.push({titre:"Nouvelle sous-section",targetWords:0,contenu:"",paragraphs:[],notes:[],folded:false}); render(); };
             secDiv.appendChild(addSubBtn);
         }
 
@@ -156,9 +168,8 @@ function render(){
     });
 }
 
-function addSection(){ plan.push({titre:"Nouvelle section",paragraphs:[],sous:[],targetWords:0,folded:false}); render(); }
+function addSection(){ plan.push({titre:"Nouvelle section",targetWords:0,contenu:"",paragraphs:[],sous:[],folded:false}); render(); }
 function moveSection(i,d){ const j=i+d; if(j<0||j>=plan.length)return; [plan[i],plan[j]]=[plan[j],plan[i]]; render(); }
-function moveSub(i,j,d){ const k=j+d; if(k<0||k>=plan[i].sous.length)return; [plan[i].sous[j],plan[i].sous[k]]=[plan[i].sous[k],plan[i].sous[j]]; render(); }
 
 function exportJSON(){ const dataStr="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(plan,null,2)); const dl=document.createElement("a"); dl.setAttribute("href",dataStr); dl.setAttribute("download","plan_memoire.json"); dl.click(); }
 
@@ -166,11 +177,12 @@ function exportMarkdown(){
     let md="";
     plan.forEach(p=>{
         md+="# "+p.titre+"\n\n";
+        if(p.contenu) md+=p.contenu+"\n\n";
         p.paragraphs.forEach((para,k)=>{ md+=`### Paragraphe ${k+1}\n${para}\n\n`; });
         p.sous.forEach(sp=>{
             md+="## "+sp.titre+"\n\n";
+            if(sp.contenu) md+=sp.contenu+"\n\n";
             sp.paragraphs.forEach((para2,k)=>{ md+=`### Paragraphe ${k+1}\n${para2}\n\n`; });
-            if(sp.notes.length>0){ md+="### Notes\n"; sp.notes.forEach(n=>md+=`- [${n.tag}] ${n.texte}\n`); md+="\n"; }
         });
         md+="---\n\n";
     });
