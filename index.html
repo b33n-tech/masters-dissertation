@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Workspace Mémoire Pro</title>
+<title>Workspace Mémoire Pro avec compteur</title>
 <style>
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background: #f4f6f8; color: #333; }
     h1 { color: #1f3c88; }
@@ -15,11 +15,14 @@
     .flex { display:flex; gap:5px; align-items:center; margin-bottom:5px; }
     #workspace { max-width: 1000px; margin-top: 20px; }
     input[type=file] { padding: 3px; }
+    .word-count { font-size:0.85em; color:#555; margin-top:5px; }
+    .fold-btn { background:#777; }
+    .fold-btn:hover { background:#555; }
 </style>
 </head>
 <body>
 
-<h1>Workspace Mémoire Pro</h1>
+<h1>Workspace Mémoire Pro avec compteur</h1>
 
 <div>
     <button onclick="addSection()">➕ Ajouter une section</button>
@@ -32,15 +35,17 @@
 
 <script>
 let plan = [
-    {titre:"Abstract", contenu:"", sous:[]},
-    {titre:"Introduction", contenu:"", sous:[]},
-    {titre:"Literature Review", contenu:"", sous:[]},
-    {titre:"Methodology", contenu:"", sous:[]},
-    {titre:"Results", contenu:"", sous:[]},
-    {titre:"Discussion", contenu:"", sous:[]},
-    {titre:"Conclusion", contenu:"", sous:[]},
-    {titre:"Annexes", contenu:"", sous:[]}
+    {titre:"Abstract", contenu:"", sous:[], targetWords:0, folded:false},
+    {titre:"Introduction", contenu:"", sous:[], targetWords:0, folded:false},
+    {titre:"Literature Review", contenu:"", sous:[], targetWords:0, folded:false},
+    {titre:"Methodology", contenu:"", sous:[], targetWords:0, folded:false},
+    {titre:"Results", contenu:"", sous:[], targetWords:0, folded:false},
+    {titre:"Discussion", contenu:"", sous:[], targetWords:0, folded:false},
+    {titre:"Conclusion", contenu:"", sous:[], targetWords:0, folded:false},
+    {titre:"Annexes", contenu:"", sous:[], targetWords:0, folded:false}
 ];
+
+function countWords(str){ return str.trim() ? str.trim().split(/\s+/).length : 0; }
 
 function render(){
     const ws = document.getElementById("workspace");
@@ -51,6 +56,10 @@ function render(){
 
         const header = document.createElement("div");
         header.className="flex";
+        const foldBtn=document.createElement("button"); foldBtn.textContent=sec.folded?"▶":"▼"; foldBtn.className="fold-btn";
+        foldBtn.onclick=()=>{ sec.folded=!sec.folded; render(); };
+        header.appendChild(foldBtn);
+
         const hInput = document.createElement("input");
         hInput.type="text"; hInput.value=sec.titre; hInput.oninput=(e)=> sec.titre=e.target.value; hInput.style.flex="1";
         header.appendChild(hInput);
@@ -61,52 +70,81 @@ function render(){
         header.append(up,down,del);
         secDiv.appendChild(header);
 
-        const ta = document.createElement("textarea"); ta.rows=4; ta.value=sec.contenu; ta.oninput=(e)=> sec.contenu=e.target.value;
-        secDiv.appendChild(ta);
+        if(!sec.folded){
+            const ta = document.createElement("textarea"); ta.rows=4; ta.value=sec.contenu; ta.oninput=(e)=> sec.contenu=e.target.value; 
+            secDiv.appendChild(ta);
 
-        // Sous-parties
-        sec.sous.forEach((sub,j)=>{
-            const subDiv = document.createElement("div"); subDiv.className="subsection";
-            const subHeader = document.createElement("div"); subHeader.className="flex";
-            const subInput = document.createElement("input"); subInput.type="text"; subInput.value=sub.titre;
-            subInput.oninput=(e)=> sub.titre=e.target.value; subInput.style.flex="1";
-            subHeader.appendChild(subInput);
+            // Target words input
+            const targetDiv=document.createElement("div"); targetDiv.className="flex";
+            const targetLabel=document.createElement("span"); targetLabel.textContent="Objectif mots :";
+            const targetInput=document.createElement("input"); targetInput.type="number"; targetInput.value=sec.targetWords;
+            targetInput.oninput=(e)=> sec.targetWords=parseInt(e.target.value)||0;
+            targetDiv.append(targetLabel,targetInput);
+            secDiv.appendChild(targetDiv);
 
-            const upS=document.createElement("button"); upS.textContent="↑"; upS.onclick=()=> moveSub(i,j,-1);
-            const downS=document.createElement("button"); downS.textContent="↓"; downS.onclick=()=> moveSub(i,j,1);
-            const delS=document.createElement("button"); delS.textContent="❌"; delS.onclick=()=>{ plan[i].sous.splice(j,1); render(); };
-            subHeader.append(upS,downS,delS);
-            subDiv.appendChild(subHeader);
+            // Word count
+            const totalWords=countWords(sec.contenu)+sec.sous.reduce((a,b)=>a+countWords(b.contenu),0);
+            const percent = sec.targetWords>0 ? Math.min(100, Math.round(totalWords/sec.targetWords*100)) : 0;
+            const wc=document.createElement("div"); wc.className="word-count";
+            wc.textContent=`Mots comptés: ${totalWords} | Couverture: ${percent}%`;
+            secDiv.appendChild(wc);
 
-            const subTa = document.createElement("textarea"); subTa.rows=3; subTa.value=sub.contenu; subTa.oninput=(e)=> sub.contenu=e.target.value;
-            subDiv.appendChild(subTa);
+            // Sous-parties
+            sec.sous.forEach((sub,j)=>{
+                const subDiv=document.createElement("div"); subDiv.className="subsection";
+                if(!sub.folded){
+                    const subHeader=document.createElement("div"); subHeader.className="flex";
+                    const subFoldBtn=document.createElement("button"); subFoldBtn.textContent=sub.folded?"▶":"▼"; subFoldBtn.className="fold-btn";
+                    subFoldBtn.onclick=()=>{ sub.folded=!sub.folded; render(); };
+                    subHeader.appendChild(subFoldBtn);
 
-            // Notes
-            sub.notes.forEach((n,k)=>{
-                const nDiv=document.createElement("div"); nDiv.className="note"; nDiv.textContent=`[${n.tag}] ${n.texte}`;
-                const delN=document.createElement("button"); delN.textContent="❌"; delN.onclick=()=>{ sub.notes.splice(k,1); render(); };
-                nDiv.appendChild(delN);
-                subDiv.appendChild(nDiv);
+                    const subInput=document.createElement("input"); subInput.type="text"; subInput.value=sub.titre; subInput.style.flex="1";
+                    subInput.oninput=(e)=> sub.titre=e.target.value;
+                    subHeader.appendChild(subInput);
+
+                    const upS=document.createElement("button"); upS.textContent="↑"; upS.onclick=()=> moveSub(i,j,-1);
+                    const downS=document.createElement("button"); downS.textContent="↓"; downS.onclick=()=> moveSub(i,j,1);
+                    const delS=document.createElement("button"); delS.textContent="❌"; delS.onclick=()=>{ plan[i].sous.splice(j,1); render(); };
+                    subHeader.append(upS,downS,delS);
+                    subDiv.appendChild(subHeader);
+
+                    const subTa=document.createElement("textarea"); subTa.rows=3; subTa.value=sub.contenu; subTa.oninput=(e)=> sub.contenu=e.target.value;
+                    subDiv.appendChild(subTa);
+
+                    // Notes
+                    sub.notes.forEach((n,k)=>{
+                        const nDiv=document.createElement("div"); nDiv.className="note"; nDiv.textContent=`[${n.tag}] ${n.texte}`;
+                        const delN=document.createElement("button"); delN.textContent="❌"; delN.onclick=()=>{ sub.notes.splice(k,1); render(); };
+                        nDiv.appendChild(delN);
+                        subDiv.appendChild(nDiv);
+                    });
+
+                    const noteInput=document.createElement("input"); noteInput.placeholder="Nouvelle note";
+                    const tagInput=document.createElement("input"); tagInput.placeholder="Tag";
+                    const addNoteBtn=document.createElement("button"); addNoteBtn.textContent="Ajouter note";
+                    addNoteBtn.onclick=()=>{ if(noteInput.value.trim()!==""){ sub.notes.push({texte:noteInput.value.trim(),tag:tagInput.value.trim()}); render(); } };
+                    subDiv.append(noteInput,tagInput,addNoteBtn);
+                } else {
+                    const titleFolded=document.createElement("div"); titleFolded.textContent=sub.titre+" ..."; titleFolded.style.fontStyle="italic"; subDiv.appendChild(titleFolded);
+                }
+
+                const subWords=countWords(sub.contenu);
+                const subWC=document.createElement("div"); subWC.className="word-count"; subWC.textContent=`Mots: ${subWords}`;
+                subDiv.appendChild(subWC);
+
+                secDiv.appendChild(subDiv);
             });
 
-            const noteInput=document.createElement("input"); noteInput.placeholder="Nouvelle note";
-            const tagInput=document.createElement("input"); tagInput.placeholder="Tag";
-            const addNoteBtn=document.createElement("button"); addNoteBtn.textContent="Ajouter note";
-            addNoteBtn.onclick=()=>{ if(noteInput.value.trim()!==""){ sub.notes.push({texte:noteInput.value.trim(),tag:tagInput.value.trim()}); render(); } };
-            subDiv.append(noteInput,tagInput,addNoteBtn);
-
-            secDiv.appendChild(subDiv);
-        });
-
-        const addSubBtn=document.createElement("button"); addSubBtn.textContent="➕ Ajouter sous-partie";
-        addSubBtn.onclick=()=>{ sec.sous.push({titre:"Nouvelle sous-partie",contenu:"",notes:[]}); render(); };
-        secDiv.appendChild(addSubBtn);
+            const addSubBtn=document.createElement("button"); addSubBtn.textContent="➕ Ajouter sous-partie";
+            addSubBtn.onclick=()=>{ sec.sous.push({titre:"Nouvelle sous-partie",contenu:"",notes:[],folded:false}); render(); };
+            secDiv.appendChild(addSubBtn);
+        }
 
         ws.appendChild(secDiv);
     });
 }
 
-function addSection(){ plan.push({titre:"Nouvelle section",contenu:"",sous:[]}); render(); }
+function addSection(){ plan.push({titre:"Nouvelle section",contenu:"",sous:[],targetWords:0,folded:false}); render(); }
 function moveSection(i,d){ const j=i+d; if(j<0||j>=plan.length)return; [plan[i],plan[j]]=[plan[j],plan[i]]; render(); }
 function moveSub(i,j,d){ const k=j+d; if(k<0||k>=plan[i].sous.length)return; [plan[i].sous[j],plan[i].sous[k]]=[plan[i].sous[k],plan[i].sous[j]]; render(); }
 
