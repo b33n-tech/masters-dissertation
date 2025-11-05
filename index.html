@@ -2,13 +2,14 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Workspace Mémoire Pro avec compteur</title>
+<title>Workspace Mémoire Pro - Trame par paragraphe</title>
 <style>
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background: #f4f6f8; color: #333; }
     h1 { color: #1f3c88; }
-    .section, .subsection, .note { border-radius: 8px; padding: 10px; margin-bottom: 10px; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+    .section, .subsection, .note, .paragraph { border-radius: 8px; padding: 10px; margin-bottom: 10px; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
     .subsection { margin-left: 20px; }
     .note { margin-left: 40px; background: #fff7e6; font-size: 0.9em; padding: 5px 10px; }
+    .paragraph { margin-left: 20px; background: #f0f0f5; }
     textarea, input { width: 100%; padding: 5px; margin-top: 5px; border-radius: 5px; border: 1px solid #ccc; }
     button { margin: 5px 3px 5px 0; padding: 5px 10px; border-radius: 5px; border:none; cursor:pointer; background:#1f3c88; color:white; }
     button:hover { background:#1452a0; }
@@ -22,7 +23,7 @@
 </head>
 <body>
 
-<h1>Workspace Mémoire Pro avec compteur</h1>
+<h1>Workspace Mémoire Pro - Trame par paragraphe</h1>
 
 <div>
     <button onclick="addSection()">➕ Ajouter une section</button>
@@ -35,14 +36,14 @@
 
 <script>
 let plan = [
-    {titre:"Abstract", contenu:"", sous:[], targetWords:0, folded:false},
-    {titre:"Introduction", contenu:"", sous:[], targetWords:0, folded:false},
-    {titre:"Literature Review", contenu:"", sous:[], targetWords:0, folded:false},
-    {titre:"Methodology", contenu:"", sous:[], targetWords:0, folded:false},
-    {titre:"Results", contenu:"", sous:[], targetWords:0, folded:false},
-    {titre:"Discussion", contenu:"", sous:[], targetWords:0, folded:false},
-    {titre:"Conclusion", contenu:"", sous:[], targetWords:0, folded:false},
-    {titre:"Annexes", contenu:"", sous:[], targetWords:0, folded:false}
+    {titre:"Abstract", paragraphs:[], sous:[], targetWords:0, folded:false},
+    {titre:"Introduction", paragraphs:[], sous:[], targetWords:0, folded:false},
+    {titre:"Literature Review", paragraphs:[], sous:[], targetWords:0, folded:false},
+    {titre:"Methodology", paragraphs:[], sous:[], targetWords:0, folded:false},
+    {titre:"Results", paragraphs:[], sous:[], targetWords:0, folded:false},
+    {titre:"Discussion", paragraphs:[], sous:[], targetWords:0, folded:false},
+    {titre:"Conclusion", paragraphs:[], sous:[], targetWords:0, folded:false},
+    {titre:"Annexes", paragraphs:[], sous:[], targetWords:0, folded:false}
 ];
 
 function countWords(str){ return str.trim() ? str.trim().split(/\s+/).length : 0; }
@@ -54,14 +55,13 @@ function render(){
         const secDiv = document.createElement("div");
         secDiv.className="section";
 
-        const header = document.createElement("div");
-        header.className="flex";
+        // Header + repli
+        const header = document.createElement("div"); header.className="flex";
         const foldBtn=document.createElement("button"); foldBtn.textContent=sec.folded?"▶":"▼"; foldBtn.className="fold-btn";
         foldBtn.onclick=()=>{ sec.folded=!sec.folded; render(); };
         header.appendChild(foldBtn);
 
-        const hInput = document.createElement("input");
-        hInput.type="text"; hInput.value=sec.titre; hInput.oninput=(e)=> sec.titre=e.target.value; hInput.style.flex="1";
+        const hInput = document.createElement("input"); hInput.type="text"; hInput.value=sec.titre; hInput.oninput=(e)=> sec.titre=e.target.value; hInput.style.flex="1";
         header.appendChild(hInput);
 
         const up = document.createElement("button"); up.textContent="↑"; up.onclick=()=> moveSection(i,-1);
@@ -71,10 +71,7 @@ function render(){
         secDiv.appendChild(header);
 
         if(!sec.folded){
-            const ta = document.createElement("textarea"); ta.rows=4; ta.value=sec.contenu; ta.oninput=(e)=> sec.contenu=e.target.value; 
-            secDiv.appendChild(ta);
-
-            // Target words input
+            // Target words
             const targetDiv=document.createElement("div"); targetDiv.className="flex";
             const targetLabel=document.createElement("span"); targetLabel.textContent="Objectif mots :";
             const targetInput=document.createElement("input"); targetInput.type="number"; targetInput.value=sec.targetWords;
@@ -82,11 +79,29 @@ function render(){
             targetDiv.append(targetLabel,targetInput);
             secDiv.appendChild(targetDiv);
 
+            // Paragraphs
+            sec.paragraphs.forEach((p,j)=>{
+                const pDiv=document.createElement("div"); pDiv.className="paragraph";
+                const pHeader=document.createElement("div"); pHeader.className="flex";
+                const paraLabel=document.createElement("span"); paraLabel.textContent=`Paragraphe ${j+1}`;
+                pHeader.appendChild(paraLabel);
+                const delP=document.createElement("button"); delP.textContent="❌"; delP.onclick=()=>{ sec.paragraphs.splice(j,1); render(); };
+                pHeader.appendChild(delP);
+                pDiv.appendChild(pHeader);
+
+                const ta=document.createElement("textarea"); ta.rows=3; ta.value=p; ta.oninput=(e)=> sec.paragraphs[j]=e.target.value;
+                pDiv.appendChild(ta);
+
+                secDiv.appendChild(pDiv);
+            });
+            const addP=document.createElement("button"); addP.textContent="➕ Ajouter paragraphe";
+            addP.onclick=()=>{ sec.paragraphs.push(""); render(); };
+            secDiv.appendChild(addP);
+
             // Word count
-            const totalWords=countWords(sec.contenu)+sec.sous.reduce((a,b)=>a+countWords(b.contenu),0);
-            const percent = sec.targetWords>0 ? Math.min(100, Math.round(totalWords/sec.targetWords*100)) : 0;
-            const wc=document.createElement("div"); wc.className="word-count";
-            wc.textContent=`Mots comptés: ${totalWords} | Couverture: ${percent}%`;
+            const secWords=sec.paragraphs.reduce((a,b)=>a+countWords(b),0)+sec.sous.reduce((a,b)=>a+countWords(b.paragraphs.reduce((aa,bb)=>aa+countWords(bb),0)),0);
+            const percent = sec.targetWords>0 ? Math.min(100, Math.round(secWords/sec.targetWords*100)) : 0;
+            const wc=document.createElement("div"); wc.className="word-count"; wc.textContent=`Mots comptés: ${secWords} | Couverture: ${percent}%`;
             secDiv.appendChild(wc);
 
             // Sous-parties
@@ -104,31 +119,28 @@ function render(){
 
                     const upS=document.createElement("button"); upS.textContent="↑"; upS.onclick=()=> moveSub(i,j,-1);
                     const downS=document.createElement("button"); downS.textContent="↓"; downS.onclick=()=> moveSub(i,j,1);
-                    const delS=document.createElement("button"); delS.textContent="❌"; delS.onclick=()=>{ plan[i].sous.splice(j,1); render(); };
+                    const delS=document.createElement("button"); delS.textContent="❌"; delS.onclick=()=>{ sec.sous.splice(j,1); render(); };
                     subHeader.append(upS,downS,delS);
                     subDiv.appendChild(subHeader);
 
-                    const subTa=document.createElement("textarea"); subTa.rows=3; subTa.value=sub.contenu; subTa.oninput=(e)=> sub.contenu=e.target.value;
-                    subDiv.appendChild(subTa);
-
-                    // Notes
-                    sub.notes.forEach((n,k)=>{
-                        const nDiv=document.createElement("div"); nDiv.className="note"; nDiv.textContent=`[${n.tag}] ${n.texte}`;
-                        const delN=document.createElement("button"); delN.textContent="❌"; delN.onclick=()=>{ sub.notes.splice(k,1); render(); };
-                        nDiv.appendChild(delN);
-                        subDiv.appendChild(nDiv);
+                    // Paragraphs sous-section
+                    sub.paragraphs.forEach((p2,k)=>{
+                        const pDiv2=document.createElement("div"); pDiv2.className="paragraph";
+                        const pLabel=document.createElement("span"); pLabel.textContent=`Paragraphe ${k+1}`;
+                        const delP2=document.createElement("button"); delP2.textContent="❌"; delP2.onclick=()=>{ sub.paragraphs.splice(k,1); render(); };
+                        pDiv2.appendChild(pLabel); pDiv2.appendChild(delP2);
+                        const ta2=document.createElement("textarea"); ta2.rows=2; ta2.value=p2; ta2.oninput=(e)=> sub.paragraphs[k]=e.target.value;
+                        pDiv2.appendChild(ta2);
+                        subDiv.appendChild(pDiv2);
                     });
-
-                    const noteInput=document.createElement("input"); noteInput.placeholder="Nouvelle note";
-                    const tagInput=document.createElement("input"); tagInput.placeholder="Tag";
-                    const addNoteBtn=document.createElement("button"); addNoteBtn.textContent="Ajouter note";
-                    addNoteBtn.onclick=()=>{ if(noteInput.value.trim()!==""){ sub.notes.push({texte:noteInput.value.trim(),tag:tagInput.value.trim()}); render(); } };
-                    subDiv.append(noteInput,tagInput,addNoteBtn);
+                    const addP2=document.createElement("button"); addP2.textContent="➕ Ajouter paragraphe"; addP2.onclick=()=>{ sub.paragraphs.push(""); render(); };
+                    subDiv.appendChild(addP2);
                 } else {
                     const titleFolded=document.createElement("div"); titleFolded.textContent=sub.titre+" ..."; titleFolded.style.fontStyle="italic"; subDiv.appendChild(titleFolded);
                 }
 
-                const subWords=countWords(sub.contenu);
+                // Word count sous-section
+                const subWords=sub.paragraphs.reduce((a,b)=>a+countWords(b),0);
                 const subWC=document.createElement("div"); subWC.className="word-count"; subWC.textContent=`Mots: ${subWords}`;
                 subDiv.appendChild(subWC);
 
@@ -136,7 +148,7 @@ function render(){
             });
 
             const addSubBtn=document.createElement("button"); addSubBtn.textContent="➕ Ajouter sous-partie";
-            addSubBtn.onclick=()=>{ sec.sous.push({titre:"Nouvelle sous-partie",contenu:"",notes:[],folded:false}); render(); };
+            addSubBtn.onclick=()=>{ sec.sous.push({titre:"Nouvelle sous-partie",paragraphs:[],notes:[],folded:false}); render(); };
             secDiv.appendChild(addSubBtn);
         }
 
@@ -144,7 +156,7 @@ function render(){
     });
 }
 
-function addSection(){ plan.push({titre:"Nouvelle section",contenu:"",sous:[],targetWords:0,folded:false}); render(); }
+function addSection(){ plan.push({titre:"Nouvelle section",paragraphs:[],sous:[],targetWords:0,folded:false}); render(); }
 function moveSection(i,d){ const j=i+d; if(j<0||j>=plan.length)return; [plan[i],plan[j]]=[plan[j],plan[i]]; render(); }
 function moveSub(i,j,d){ const k=j+d; if(k<0||k>=plan[i].sous.length)return; [plan[i].sous[j],plan[i].sous[k]]=[plan[i].sous[k],plan[i].sous[j]]; render(); }
 
@@ -153,9 +165,11 @@ function exportJSON(){ const dataStr="data:text/json;charset=utf-8,"+encodeURICo
 function exportMarkdown(){
     let md="";
     plan.forEach(p=>{
-        md+="# "+p.titre+"\n\n"+p.contenu+"\n\n";
+        md+="# "+p.titre+"\n\n";
+        p.paragraphs.forEach((para,k)=>{ md+=`### Paragraphe ${k+1}\n${para}\n\n`; });
         p.sous.forEach(sp=>{
-            md+="## "+sp.titre+"\n\n"+sp.contenu+"\n\n";
+            md+="## "+sp.titre+"\n\n";
+            sp.paragraphs.forEach((para2,k)=>{ md+=`### Paragraphe ${k+1}\n${para2}\n\n`; });
             if(sp.notes.length>0){ md+="### Notes\n"; sp.notes.forEach(n=>md+=`- [${n.tag}] ${n.texte}\n`); md+="\n"; }
         });
         md+="---\n\n";
