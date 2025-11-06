@@ -63,6 +63,20 @@ button:hover {
   color: #666;
   margin-top: 5px;
 }
+.progress {
+  height: 6px;
+  border-radius: 4px;
+  background: #e5e7eb;
+  margin-top: 5px;
+  overflow: hidden;
+}
+.progress-bar {
+  height: 6px;
+  border-radius: 4px;
+  background: #2563eb;
+  width: 0%;
+  transition: width 0.3s ease;
+}
 .paragraph {
   background: #f4f6fa;
   border-radius: 8px;
@@ -74,7 +88,9 @@ button:hover {
   background: #e9eef6;
 }
 .paragraph-controls {
-  text-align: right;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 4px;
 }
 .add-paragraph-inline {
@@ -92,19 +108,24 @@ button:hover {
 .add-paragraph-inline:hover {
   text-decoration: underline;
 }
-.progress {
-  height: 6px;
-  border-radius: 4px;
-  background: #e5e7eb;
-  margin-top: 5px;
+input.target {
+  width: 80px;
+  padding: 4px;
+  margin-left: 8px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  font-size: 0.9em;
 }
-.progress-bar {
-  height: 6px;
-  border-radius: 4px;
-  background: #2563eb;
-  width: 0%;
-  transition: width 0.3s;
+.badge {
+  font-size: 0.8em;
+  padding: 2px 6px;
+  border-radius: 6px;
+  color: white;
+  margin-left: 6px;
 }
+.badge.low { background: #f97316; }
+.badge.mid { background: #eab308; }
+.badge.high { background: #16a34a; }
 </style>
 </head>
 <body>
@@ -131,7 +152,7 @@ function render() {
     div.className = 'section';
 
     const header = document.createElement('h2');
-    header.innerHTML = `${section.titre} <small style="color:#999;">(${section.targetWords} mots visés)</small>`;
+    header.innerHTML = `${section.titre}`;
     header.onclick = () => {
       section.folded = !section.folded;
       render();
@@ -139,6 +160,17 @@ function render() {
     div.appendChild(header);
 
     if (!section.folded) {
+      const targetInput = document.createElement('input');
+      targetInput.type = 'number';
+      targetInput.className = 'target';
+      targetInput.value = section.targetWords || 0;
+      targetInput.oninput = e => {
+        section.targetWords = parseInt(e.target.value) || 0;
+        updateWordcount(div, section);
+      };
+      div.appendChild(document.createTextNode("Objectif de mots :"));
+      div.appendChild(targetInput);
+
       const textarea = document.createElement('textarea');
       textarea.value = section.contenu;
       textarea.oninput = e => {
@@ -157,7 +189,6 @@ function render() {
 
       div.appendChild(wordcount);
       div.appendChild(progress);
-
       updateWordcount(div, section);
 
       const addAtTop = document.createElement('button');
@@ -172,15 +203,27 @@ function render() {
 
         const controls = document.createElement('div');
         controls.className = 'paragraph-controls';
-        controls.innerHTML = `<button onclick="removeParagraph(${sIndex}, ${pIndex})">🗑️</button>`;
+
+        const target = document.createElement('input');
+        target.type = 'number';
+        target.className = 'target';
+        target.value = p.targetWords || 0;
+        target.oninput = e => p.targetWords = parseInt(e.target.value) || 0;
+
+        const delBtn = document.createElement('button');
+        delBtn.textContent = '🗑️';
+        delBtn.onclick = () => removeParagraph(sIndex, pIndex);
+
+        controls.appendChild(document.createTextNode(`Paragraphe ${pIndex + 1}`));
+        controls.appendChild(target);
+        controls.appendChild(delBtn);
         pDiv.appendChild(controls);
 
         const pText = document.createElement('textarea');
-        pText.value = p;
-        pText.oninput = e => {
-          section.paragraphs[pIndex] = e.target.value;
-        };
+        pText.value = p.text || '';
+        pText.oninput = e => p.text = e.target.value;
         pDiv.appendChild(pText);
+
         div.appendChild(pDiv);
 
         const addBetween = document.createElement('button');
@@ -207,13 +250,19 @@ function updateWordcount(div, section) {
   const wordcount = div.querySelector('.wordcount');
   const bar = div.querySelector('.progress-bar');
   const words = countWords(section.contenu);
-  const pct = Math.min(100, (words / section.targetWords * 100).toFixed(1));
-  wordcount.innerHTML = `📝 ${words} / ${section.targetWords} mots (${pct}%)`;
+  const target = section.targetWords || 0;
+  const pct = target ? Math.min(100, (words / target * 100).toFixed(1)) : 0;
+
+  let badgeClass = "low";
+  if (pct > 66) badgeClass = "high";
+  else if (pct > 33) badgeClass = "mid";
+
+  wordcount.innerHTML = `📝 ${words} / ${target || "?"} mots (${pct}%) <span class="badge ${badgeClass}">${badgeClass.toUpperCase()}</span>`;
   bar.style.width = pct + '%';
 }
 
 function addParagraphAt(sectionIndex, position) {
-  data[sectionIndex].paragraphs.splice(position, 0, '');
+  data[sectionIndex].paragraphs.splice(position, 0, { text: "", targetWords: 0 });
   render();
 }
 
