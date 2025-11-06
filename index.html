@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Plan Mémoire – Builder</title>
+<title>🧠 Plan Mémoire Builder</title>
 <style>
 body {
   font-family: "Inter", sans-serif;
@@ -25,7 +25,7 @@ body {
   transition: 0.2s;
 }
 .section:hover {
-  box-shadow: 0 5px 12px rgba(0,0,0,0.15);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.15);
 }
 .section h2 {
   margin: 0 0 10px;
@@ -69,7 +69,6 @@ button:hover {
   margin: 10px 0;
   padding: 8px;
   transition: 0.2s;
-  position: relative;
 }
 .paragraph:hover {
   background: #e9eef6;
@@ -82,12 +81,13 @@ button:hover {
   display: block;
   width: 100%;
   text-align: center;
-  margin: 4px 0;
+  margin: 6px 0;
   cursor: pointer;
   color: #2563eb;
   font-size: 0.9em;
   background: none;
   border: none;
+  font-weight: 500;
 }
 .add-paragraph-inline:hover {
   text-decoration: underline;
@@ -109,7 +109,7 @@ button:hover {
 </head>
 <body>
 <div class="container">
-  <h1>🧠 Plan détaillé du mémoire</h1>
+  <h1>🧩 Plan détaillé du mémoire</h1>
   <input type="file" id="uploadJSON" accept=".json"><br><br>
   <div id="sections"></div>
   <button onclick="downloadJSON()">💾 Export JSON</button>
@@ -132,13 +132,19 @@ function render() {
 
     const header = document.createElement('h2');
     header.innerHTML = `${section.titre} <small style="color:#999;">(${section.targetWords} mots visés)</small>`;
-    header.onclick = () => section.folded = !section.folded;
+    header.onclick = () => {
+      section.folded = !section.folded;
+      render();
+    };
     div.appendChild(header);
 
     if (!section.folded) {
       const textarea = document.createElement('textarea');
       textarea.value = section.contenu;
-      textarea.oninput = e => { section.contenu = e.target.value; updateProgress(); };
+      textarea.oninput = e => {
+        section.contenu = e.target.value;
+        updateProgress();
+      };
       div.appendChild(textarea);
 
       const wordcount = document.createElement('div');
@@ -146,6 +152,7 @@ function render() {
       const words = countWords(section.contenu);
       const pct = Math.min(100, (words / section.targetWords * 100).toFixed(1));
       wordcount.innerHTML = `📝 ${words} / ${section.targetWords} mots (${pct}%)`;
+
       const progress = document.createElement('div');
       progress.className = 'progress';
       const bar = document.createElement('div');
@@ -155,11 +162,17 @@ function render() {
       div.appendChild(wordcount);
       div.appendChild(progress);
 
-      // Paragraph list
+      // --- Paragraph insertion logic ---
+      const addAtTop = document.createElement('button');
+      addAtTop.className = 'add-paragraph-inline';
+      addAtTop.textContent = '+ Ajouter un paragraphe en haut';
+      addAtTop.onclick = () => addParagraphAt(sIndex, 0);
+      div.appendChild(addAtTop);
+
       section.paragraphs.forEach((p, pIndex) => {
         const pDiv = document.createElement('div');
         pDiv.className = 'paragraph';
-        
+
         const controls = document.createElement('div');
         controls.className = 'paragraph-controls';
         controls.innerHTML = `
@@ -169,24 +182,20 @@ function render() {
 
         const pText = document.createElement('textarea');
         pText.value = p;
-        pText.oninput = e => { section.paragraphs[pIndex] = e.target.value; updateProgress(); };
+        pText.oninput = e => {
+          section.paragraphs[pIndex] = e.target.value;
+          updateProgress();
+        };
         pDiv.appendChild(pText);
-
-        // Add paragraph *below* current one
-        const addBelow = document.createElement('button');
-        addBelow.className = 'add-paragraph-inline';
-        addBelow.textContent = '+ Ajouter un paragraphe ici';
-        addBelow.onclick = () => addParagraphAt(sIndex, pIndex + 1);
-        pDiv.appendChild(addBelow);
-
         div.appendChild(pDiv);
-      });
 
-      const addTop = document.createElement('button');
-      addTop.className = 'add-paragraph-inline';
-      addTop.textContent = '+ Ajouter un paragraphe au début';
-      addTop.onclick = () => addParagraphAt(sIndex, 0);
-      div.insertBefore(addTop, textarea.nextSibling);
+        // Button to insert below current paragraph
+        const addBetween = document.createElement('button');
+        addBetween.className = 'add-paragraph-inline';
+        addBetween.textContent = '+ Ajouter un paragraphe ici';
+        addBetween.onclick = () => addParagraphAt(sIndex, pIndex + 1);
+        div.appendChild(addBetween);
+      });
 
       if (section.paragraphs.length === 0) {
         const addFirst = document.createElement('button');
