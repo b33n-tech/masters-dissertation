@@ -143,26 +143,23 @@ function render() {
       textarea.value = section.contenu;
       textarea.oninput = e => {
         section.contenu = e.target.value;
-        updateProgress();
+        updateWordcount(div, section);
       };
       div.appendChild(textarea);
 
       const wordcount = document.createElement('div');
       wordcount.className = 'wordcount';
-      const words = countWords(section.contenu);
-      const pct = Math.min(100, (words / section.targetWords * 100).toFixed(1));
-      wordcount.innerHTML = `📝 ${words} / ${section.targetWords} mots (${pct}%)`;
-
       const progress = document.createElement('div');
       progress.className = 'progress';
       const bar = document.createElement('div');
       bar.className = 'progress-bar';
-      bar.style.width = pct + '%';
       progress.appendChild(bar);
+
       div.appendChild(wordcount);
       div.appendChild(progress);
 
-      // --- Paragraph insertion logic ---
+      updateWordcount(div, section);
+
       const addAtTop = document.createElement('button');
       addAtTop.className = 'add-paragraph-inline';
       addAtTop.textContent = '+ Ajouter un paragraphe en haut';
@@ -175,21 +172,17 @@ function render() {
 
         const controls = document.createElement('div');
         controls.className = 'paragraph-controls';
-        controls.innerHTML = `
-          <button onclick="removeParagraph(${sIndex}, ${pIndex})">🗑️</button>
-        `;
+        controls.innerHTML = `<button onclick="removeParagraph(${sIndex}, ${pIndex})">🗑️</button>`;
         pDiv.appendChild(controls);
 
         const pText = document.createElement('textarea');
         pText.value = p;
         pText.oninput = e => {
           section.paragraphs[pIndex] = e.target.value;
-          updateProgress();
         };
         pDiv.appendChild(pText);
         div.appendChild(pDiv);
 
-        // Button to insert below current paragraph
         const addBetween = document.createElement('button');
         addBetween.className = 'add-paragraph-inline';
         addBetween.textContent = '+ Ajouter un paragraphe ici';
@@ -210,6 +203,15 @@ function render() {
   });
 }
 
+function updateWordcount(div, section) {
+  const wordcount = div.querySelector('.wordcount');
+  const bar = div.querySelector('.progress-bar');
+  const words = countWords(section.contenu);
+  const pct = Math.min(100, (words / section.targetWords * 100).toFixed(1));
+  wordcount.innerHTML = `📝 ${words} / ${section.targetWords} mots (${pct}%)`;
+  bar.style.width = pct + '%';
+}
+
 function addParagraphAt(sectionIndex, position) {
   data[sectionIndex].paragraphs.splice(position, 0, '');
   render();
@@ -217,10 +219,6 @@ function addParagraphAt(sectionIndex, position) {
 
 function removeParagraph(sectionIndex, paragraphIndex) {
   data[sectionIndex].paragraphs.splice(paragraphIndex, 1);
-  render();
-}
-
-function updateProgress() {
   render();
 }
 
